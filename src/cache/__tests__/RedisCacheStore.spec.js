@@ -75,6 +75,35 @@ describe('#get', () => {
   });
 });
 
+describe('#all', () => {
+  it('should get all the values in the sessions', async () => {
+    const store = new RedisCacheStore();
+    const redis = store.getRedis();
+
+    redis.scan.mockResolvedValueOnce(['0', ['keys', 'array']]);
+    redis.mget.mockResolvedValueOnce([{ values: 1 }, { array: 2 }]);
+
+    const result = await store.all();
+
+    expect(result).toEqual([{ values: 1 }, { array: 2 }]);
+    expect(redis.scan).toBeCalledWith('0');
+  });
+
+  it('should iterate through all the keys in redis', async () => {
+    const store = new RedisCacheStore();
+    const redis = store.getRedis();
+
+    redis.scan
+      .mockResolvedValueOnce(['4', ['an', 'array', 'contains', 'keys']])
+      .mockResolvedValueOnce(['0', ['another', 'array', 'contains', 'keys']]);
+
+    await store.all();
+
+    expect(redis.scan).toBeCalledWith('0');
+    expect(redis.scan).toBeCalledWith('4');
+  });
+});
+
 describe('#put', () => {
   it('should store cache item for a given number of minutes', async () => {
     const store = new RedisCacheStore();
